@@ -20,6 +20,8 @@ package org.ballerinalang.security.jwt.crypto;
 
 /**
  * Provides the supported algorithms
+ *
+ * @since 0.96.0
  */
 public class RSASSAProvider {
 

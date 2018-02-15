@@ -26,7 +26,7 @@ import java.security.SignatureException;
 import java.util.Base64;
 
 /**
- *
+ *@since 0.96.0
  */
 public class RSASigner implements JWSSigner {
 

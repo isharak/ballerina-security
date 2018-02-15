@@ -27,6 +27,7 @@ import java.util.Base64;
 
 /**
  *
+ * @since 0.96.0
  */
 public class RSAVerifier implements JWSVerifier {
 
