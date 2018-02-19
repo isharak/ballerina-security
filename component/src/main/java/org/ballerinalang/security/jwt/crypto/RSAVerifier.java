@@ -26,7 +26,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 
 /**
- *
  * @since 0.96.0
  */
 public class RSAVerifier implements JWSVerifier {
@@ -46,13 +45,15 @@ public class RSAVerifier implements JWSVerifier {
     public boolean verify(String signingInput, String signature, String algorithm) throws JWSException {
 
         final Signature signatureVerifier;
+        byte[] data = signingInput.getBytes();
+        byte[] signatureData = Base64.getUrlDecoder().decode(signature.getBytes());
+        String alg = RSASSAProvider.getJCAAlgorithmName(algorithm);
         try {
-            signatureVerifier = Signature.getInstance(
-                    RSASSAProvider.getJCAAlgorithmName(algorithm));
-
+            signatureVerifier = Signature.getInstance(alg);
             signatureVerifier.initVerify(publicKey);
-            signatureVerifier.update(signingInput.getBytes());
-            return signatureVerifier.verify(Base64.getUrlDecoder().decode(signature));
+            signatureVerifier.update(data);
+
+            return signatureVerifier.verify(signatureData);
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
             throw new JWSException(e.getMessage(), e);
         }
