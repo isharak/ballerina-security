@@ -27,6 +27,13 @@ struct JWTPayload {
 
 }
 
+struct SecurityContext {
+    string userName;
+    string[] roles;
+    string[] scopes;
+    string[] clims;
+}
+
 public function validateJWT (string jwtToken) (boolean, error) {
 
     string[] encodedJWTComponents = getJWTComponents(sampleJWTToken);
@@ -92,7 +99,6 @@ function processJWTPayload (json jwtPayloadJson) (JWTPayload) {
         } else if (key.equalsIgnoreCase(nbf)) {
             var intVal, _ = <int>value;
             jwtPayload.nbf = intVal;
-
         } else if (key.equalsIgnoreCase(iat)) {
             var intVal, _ = <int>value;
             jwtPayload.iat = intVal;
@@ -115,24 +121,67 @@ function validateJWT (string[] encodedJWTComponents, JWTPayload jwtPayload, json
         error err = {msg:"Invalide signature"};
         return false, err;
     }
+    if (!validateIssuer(jwtPayload)) {
+        error err = {msg:"No Registered IDP found for the JWT with issuer name : " + jwtPayload.iss};
+        return false, err;
+    }
+    if (!validateAudience(jwtPayload)) {
+        error err = {msg:"Invalide audience : " + jwtPayload.aud};
+        return false, err;
+    }
+    if (!validateExpirationTime(jwtPayload)) {
+        error err = {msg:"JWT token is expired"};
+        return false, err;
+    }
+    if (!validateNotBeforeTime(jwtPayload)) {
+        error err = {msg:"JWT token is used before Not_Before_Time"};
+        return false, err;
+    }
 
-    return true, null;
-    //validateIssuer();
-    //validateAudience();
-    //validateExpiration();
-    //validateValidityInterval();
+    //TODO
     //validateJWTId();
     //validateCustomClaims();
+
+    return true, null;
+
 
 }
 
 function validateMandatoryFileds (JWTPayload jwtPayload) (boolean) {
-    if (jwtPayload.iss == null || jwtPayload.sub == null || jwtPayload.exp == null || jwtPayload.exp == null) {
+    if (jwtPayload.iss == null || jwtPayload.sub == null || jwtPayload.exp == 0 || jwtPayload.aud == null) {
         return false;
     }
     return true;
 }
 
 function validateSignature (string[] encodedJWTComponents, json jwtHeaderJson) (boolean) {
-
+    //TODO validate the signature
+    return true;
 }
+
+function validateIssuer (JWTPayload jwtPayload) (boolean) {
+    return jwtPayload.iss.equalsIgnoreCase(getJWTAuthConfiguration(iss));
+}
+
+function validateAudience (JWTPayload jwtPayload) (boolean) {
+    foreach audince in jwtPayload.aud {
+        if (audince.equalsIgnoreCase(getJWTAuthConfiguration(aud))) {
+            return true;
+        }
+        return false;
+    }
+}
+
+function validateExpirationTime (JWTPayload jwtPayload) (boolean) {
+    return jwtPayload.exp > currentTime().time;
+}
+
+function validateNotBeforeTime (JWTPayload jwtPayload) (boolean) {
+    return currentTime().time > jwtPayload.nbf;
+}
+
+function getJWTAuthConfiguration (string key) (string) {
+    //TODO validate the input and return relevant parameter
+    return key;
+}
+
