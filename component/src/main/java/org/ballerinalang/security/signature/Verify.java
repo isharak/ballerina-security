@@ -42,7 +42,8 @@ import java.security.interfaces.RSAPublicKey;
         args = {
                 @Argument(name = "data", type = TypeKind.STRING),
                 @Argument(name = "signature", type = TypeKind.STRING),
-                @Argument(name = "algorithm", type = TypeKind.STRING)
+                @Argument(name = "algorithm", type = TypeKind.STRING),
+                @Argument(name = "keyAlias", type = TypeKind.STRING)
         },
         returnType = {@ReturnType(type = TypeKind.BOOLEAN)},
         isPublic = true
@@ -55,11 +56,18 @@ public class Verify extends AbstractNativeFunction {
         String data = getStringArgument(context, 0);
         String signature = getStringArgument(context, 1);
         String algorithm = getStringArgument(context, 2);
+        String keyAlias = getStringArgument(context, 3);
         Boolean validSignature = false;
+        RSAPublicKey publicKey;
 
         try {
-            JWSVerifier verifier = new RSAVerifier((RSAPublicKey) KeyStore.getKeyStore()
-                    .getDefaultPublicKey());
+            if (keyAlias != null && !keyAlias.isEmpty()) {
+                publicKey = (RSAPublicKey) KeyStore.getKeyStore().getPublicKey(keyAlias);
+            } else {
+                publicKey = (RSAPublicKey) KeyStore.getKeyStore()
+                        .getDefaultPublicKey();
+            }
+            JWSVerifier verifier = new RSAVerifier(publicKey);
             validSignature = verifier.verify(data, signature, algorithm);
 
         } catch (Exception e) {

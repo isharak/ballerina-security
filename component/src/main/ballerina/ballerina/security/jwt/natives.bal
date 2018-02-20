@@ -19,10 +19,8 @@ const string exp = "exp";
 const string nbf = "nbf";
 const string iat = "iat";
 
-const string scope = "scope";
-const string roles = "roles";
 
-struct Payload {
+public struct Payload {
     string iss;
     string sub;
     string[] aud;
@@ -41,43 +39,27 @@ struct Header {
     map customClaims;
 }
 
-struct SecurityContext {
-    string userName;
-    string[] roles;
-    string[] scopes;
-    map customClaims;
-}
-
-struct JWTValidatorConfig {
+public struct JWTValidatorConfig {
     string issuer;
     string audience;
-    string certificateAleas;
+    string certificateAlias;
 }
 
-public function verify (string jwtToken) (boolean, error) {
+public function verify (string jwtToken, JWTValidatorConfig config) (boolean, Payload, error) {
 
     string[] encodedJWTComponents = getJWTComponents(jwtToken);
 
     Payload payload = {};
     Header header = {};
     header, payload = parseJWT(encodedJWTComponents);
-    //
-    ////json jwtHeaderJson;
-    ////json jwtPayloadJson;
-    //var headerJson, payloadJson = getDecodedJWTComponents(encodedJWTComponents);
-    //
-    //Payload jwtPayload = parsePayload(payloadJson);
-
-
 
     boolean isValid;
     error e;
-    isValid, e = validateJWT(encodedJWTComponents, header, payload);
+    isValid, e = validateJWT(encodedJWTComponents, header, payload, config);
     if (isValid) {
-        SecurityContext authenticateUser = setSecurityContext(payload);
-        return true, null;
+        return true, payload, null;
     }
-    return false, null;
+    return false, null, e;
 }
 
 function getJWTComponents (string jwtToken) (string[]) {
@@ -175,21 +157,21 @@ function parsePayload (json jwtPayloadJson) (Payload) {
     return jwtPayload;
 }
 
-function validateJWT (string[] encodedJWTComponents, Header jwtHeader, Payload jwtPayload)
+function validateJWT (string[] encodedJWTComponents, Header jwtHeader, Payload jwtPayload, JWTValidatorConfig config)
 (boolean, error) {
     if (!validateMandatoryFields(jwtPayload)) {
         error err = {msg:"Mandatory fields(Issuer, Subject, Expiration time or Audience) are empty in the given JSON Web Token."};
         return false, err;
     }
-    if (!validateSignature(encodedJWTComponents, jwtHeader)) {
+    if (!validateSignature(encodedJWTComponents, jwtHeader, config)) {
         error err = {msg:"Invalide signature"};
         return false, err;
     }
-    if (!validateIssuer(jwtPayload)) {
+    if (!validateIssuer(jwtPayload, config)) {
         error err = {msg:"No Registered IDP found for the JWT with issuer name : " + jwtPayload.iss};
         return false, err;
     }
-    if (!validateAudience(jwtPayload)) {
+    if (!validateAudience(jwtPayload, config)) {
         //TODO need to set expected audience or available anudience list
         error err = {msg:"Invalide audience"};
         return false, err;
@@ -214,19 +196,19 @@ function validateMandatoryFields (Payload jwtPayload) (boolean) {
     return true;
 }
 
-function validateSignature (string[] encodedJWTComponents, Header jwtHeader) (boolean) {
+function validateSignature (string[] encodedJWTComponents, Header jwtHeader, JWTValidatorConfig config) (boolean) {
     string assertion = encodedJWTComponents[0] + "." + encodedJWTComponents[1];
     string signPart = encodedJWTComponents[2];
-    return signature:verify(assertion, signPart, jwtHeader.alg);
+    return signature:verify(assertion, signPart, jwtHeader.alg, config.certificateAlias);
 }
 
-function validateIssuer (Payload jwtPayload) (boolean) {
-    return jwtPayload.iss.equalsIgnoreCase(getJWTAuthConfiguration(iss));
+function validateIssuer (Payload jwtPayload, JWTValidatorConfig config) (boolean) {
+    return jwtPayload.iss.equalsIgnoreCase(config.issuer);
 }
 
-function validateAudience (Payload jwtPayload) (boolean) {
+function validateAudience (Payload jwtPayload, JWTValidatorConfig config) (boolean) {
     foreach audience in jwtPayload.aud {
-        if (audience.equalsIgnoreCase(getJWTAuthConfiguration(aud))) {
+        if (audience.equalsIgnoreCase(config.audience)) {
             return true;
         }
         return false;
@@ -259,25 +241,7 @@ function urlDecode (string encodedString) (string) {
     return decodedString;
 }
 
-function setSecurityContext (Payload jwtPayload) (SecurityContext) {
-    SecurityContext authenticatedUser = {};
-    authenticatedUser.userName = jwtPayload.sub;
-    if (jwtPayload.customClaims[scope] != null) {
-        var scopeString, _ = (string)jwtPayload.customClaims[scope];
-        if (scopeString != null) {
-            authenticatedUser.scopes = scopeString.split(" ");
-        }
-    }
 
-    if (jwtPayload.customClaims[roles] != null) {
-        var roleList, _ = (string[])jwtPayload.customClaims[roles];
-        if (roleList != null) {
-            authenticatedUser.roles = roleList;
-        }
-    }
-    return authenticatedUser;
-
-}
 
 function convertToStringArray (json jsonData) (string[]) {
     string[] outData = [];

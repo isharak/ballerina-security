@@ -41,7 +41,8 @@ import java.security.PrivateKey;
         functionName = "sign",
         args = {
                 @Argument(name = "data", type = TypeKind.STRING),
-                @Argument(name = "algorithm", type = TypeKind.STRING)
+                @Argument(name = "algorithm", type = TypeKind.STRING),
+                @Argument(name = "keyAlias", type = TypeKind.STRING)
         },
         returnType = {@ReturnType(type = TypeKind.STRING)},
         isPublic = true
