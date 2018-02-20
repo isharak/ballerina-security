@@ -18,6 +18,7 @@
 
 package org.ballerinalang.security.util;
 
+import org.ballerinalang.config.ConfigRegistry;
 import org.ballerinalang.util.exceptions.BallerinaException;
 
 import java.io.File;
@@ -34,6 +35,13 @@ import java.security.cert.Certificate;
  * @since 0.96.0
  */
 public class KeyStore {
+
+    private static final String KEYSTORE_CONFIG = "KeyStore";
+    private static final String LOCATION = "Location";
+    private static final String TYPE = "Type";
+    private static final String PASSWORD = "Password";
+    private static final String DEFAULT_KEY_ALIAS = "KeyAlias";
+    private static final String DEFAULT_KEY_PASSWORD = "KeyPassword";
 
     private static final KeyStore keyStoreInstance = new KeyStore();
     private java.security.KeyStore keyStore;
@@ -107,8 +115,10 @@ public class KeyStore {
      */
     public PrivateKey getDefaultPrivateKey() throws KeyStoreException {
 
-        char[] keyStorePassword = "wso2carbon".toCharArray();
-        String keyAlias = "wso2carbon";
+        ConfigRegistry configRegistry = ConfigRegistry.getInstance();
+        char[] keyStorePassword = configRegistry.getInstanceConfigValue(KEYSTORE_CONFIG, DEFAULT_KEY_PASSWORD)
+                                 .toCharArray();
+        String keyAlias = configRegistry.getInstanceConfigValue(KEYSTORE_CONFIG, DEFAULT_KEY_ALIAS);
         return getPrivateKey(keyAlias, keyStorePassword);
     }
 
@@ -120,7 +130,7 @@ public class KeyStore {
      */
     public PublicKey getDefaultPublicKey() throws KeyStoreException {
 
-        String keyAlias = "wso2carbon";
+        String keyAlias = ConfigRegistry.getInstance().getInstanceConfigValue(KEYSTORE_CONFIG, DEFAULT_KEY_ALIAS);
         return getPublicKey(keyAlias);
     }
 
@@ -132,15 +142,16 @@ public class KeyStore {
      */
     public Certificate getDefaultCertificate() throws KeyStoreException {
 
-        String keyAlias = "wso2carbon";
+        String keyAlias = ConfigRegistry.getInstance().getInstanceConfigValue(KEYSTORE_CONFIG, DEFAULT_KEY_ALIAS);
         return getCertificate(keyAlias);
     }
 
     private void loadKeyStore() {
 
-        String keyStoreLocation = "/home/ishara/wso2/product/wso2is-5.3.0/repository/resources/security/wso2carbon.jks";
-        char[] keyStorePassword = "wso2carbon".toCharArray();
-        String keystoreType = "JKS";
+        ConfigRegistry configRegistry = ConfigRegistry.getInstance();
+        String keyStoreLocation = configRegistry.getInstanceConfigValue(KEYSTORE_CONFIG, LOCATION);
+        char[] keyStorePassword = configRegistry.getInstanceConfigValue(KEYSTORE_CONFIG, PASSWORD).toCharArray();
+        String keystoreType = configRegistry.getInstanceConfigValue(KEYSTORE_CONFIG, TYPE);
 
         try (InputStream file = new FileInputStream(new File(keyStoreLocation))) {
             keyStore = java.security.KeyStore.getInstance(keystoreType);
