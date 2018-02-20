@@ -4,10 +4,10 @@ import ballerina.security.signature;
 import ballerina.net.uri;
 
 public function main (string[] args) {
-    string jwtToken = "ewogICJhbGciOiAiUlMyNTYiLAogICJ0eXAiOiAiSldUIgp9.ewogICJzdWIiOiAiaXNoYXJhIiwKICAibmFtZSI6ICJKb2huIERvZSIsCiAgImFkbWluIjogdHJ1ZSwKICAiaXNzIjogIndzbzIiLAogICJhdWQiOiAiQmFsbGVyaW5hIiwKICAic2NvcGUiOiAiSm9obiB0ZXN0IERvZSIsCiAgInJvbGVzIjogWyJhZG1pbiIsImFkbWluMiJdLAogICJleHAiOiAxNTE5MDUyNjU5NTcwCn0=.WpUoN4TA0PeisfvbwUuxpsrLXg6jwZ2Iv6EvNkqXR3QQ6FjNGzTizCqdInXE-BDgaCtTJvXq1iqCoRpOo4ORPh5UwiMJKLMRJABT_YVc01_FJO7nNHtQDa1LCehk2BJeZ271f_WTaub9RFch-n4KCJBWufEx7X76OEGErXYdZCI=";
+    string jwtToken = "ewogICJhbGciOiAiUlMyNTYiLAogICJ0eXAiOiAiSldUIgp9.ewogICJzdWIiOiAiaXNoYXJhIiwKICAibmFtZSI6ICJKb2huIERvZSIsCiAgImFkbWluIjogdHJ1ZSwKICAiaXNzIjogIndzbzIiLAogICJhdWQiOiAiQmFsbGVyaW5hIiwKICAic2NvcGUiOiAiSm9obiB0ZXN0IERvZSIsCiAgInJvbGVzIjogWyJhZG1pbiIsImFkbWluMiJdLAogICJleHAiOiAxNTE5MTA4NjU5NjEyCn0=.bX8_6_to7eWIv-spCN1UzmjS2XhwNJdQU2LZ4bwWTgN1bmEbz0WjGQgvwOFPA2ONhfH1e5EnaETMpRqMgKYQPkFu1kwjlmacedwk0wUpNWfoQnOJDT2vBWEtw6s_B2KzP3oVWyglf4G8wDPOLwpFPcWzl-LQ4nGaTKYOoXKNMRY=";
     boolean isVerified;
     error e;
-    isVerified, e = jwt:validateJWT(jwtToken);
+    isVerified, e = jwt:verify(jwtToken);
     //jwt:validateJWT("fdafa");
     println(isVerified);
 }

@@ -5,6 +5,10 @@ import ballerina.security.signature;
 
 //JOSH header parameters
 const string alg = "alg";
+const string typ = "typ";
+const string cty = "cty";
+const string kid = "kid";
+
 
 //Payload parameters
 const string iss = "iss";
@@ -15,7 +19,10 @@ const string exp = "exp";
 const string nbf = "nbf";
 const string iat = "iat";
 
-struct JWTPayload {
+const string scope = "scope";
+const string roles = "roles";
+
+struct Payload {
     string iss;
     string sub;
     string[] aud;
@@ -24,35 +31,52 @@ struct JWTPayload {
     int nbf;
     int iat;
     map customClaims;
+}
 
+struct Header {
+    string alg;
+    string typ;
+    string cty;
+    string kid;
+    map customClaims;
 }
 
 struct SecurityContext {
     string userName;
     string[] roles;
     string[] scopes;
-    map claims;
+    map customClaims;
 }
 
-public function validateJWT (string jwtToken) (boolean, error) {
+struct JWTValidatorConfig {
+    string issuer;
+    string audience;
+    string certificateAleas;
+}
+
+public function verify (string jwtToken) (boolean, error) {
 
     string[] encodedJWTComponents = getJWTComponents(jwtToken);
 
-    json jwtHeaderJson;
-    json jwtPayloadJson;
-    jwtHeaderJson, jwtPayloadJson = getDecodedJWTComponents(encodedJWTComponents);
+    Payload payload = {};
+    Header header = {};
+    header, payload = parseJWT(encodedJWTComponents);
+    //
+    ////json jwtHeaderJson;
+    ////json jwtPayloadJson;
+    //var headerJson, payloadJson = getDecodedJWTComponents(encodedJWTComponents);
+    //
+    //Payload jwtPayload = parsePayload(payloadJson);
 
-    JWTPayload jwtPayload = processJWTPayload(jwtPayloadJson);
 
-    boolean validJWT;
+
+    boolean isValid;
     error e;
-    validJWT, e = validateJWTToken(encodedJWTComponents, jwtPayload, jwtHeaderJson);
-
-    if (validJWT) {
-        SecurityContext authenticateUser = setSecurityContext(jwtPayload);
+    isValid, e = validateJWT(encodedJWTComponents, header, payload);
+    if (isValid) {
+        SecurityContext authenticateUser = setSecurityContext(payload);
         return true, null;
     }
-
     return false, null;
 }
 
@@ -60,6 +84,14 @@ function getJWTComponents (string jwtToken) (string[]) {
     string[] jwtComponents = jwtToken.split("\\.");
     return jwtComponents;
 
+}
+
+function parseJWT (string[] encodedJWTComponents) (Header, Payload) {
+    var headerJson, payloadJson = getDecodedJWTComponents(encodedJWTComponents);
+    Header jwtHeader = parseHeader(headerJson);
+    Payload jwtPayload = parsePayload(payloadJson);
+
+    return jwtHeader, jwtPayload;
 }
 
 function getDecodedJWTComponents (string[] encodedJWTComponents) (json, json) {
@@ -77,9 +109,34 @@ function getDecodedJWTComponents (string[] encodedJWTComponents) (json, json) {
     return jwtHeaderJson, jwtPayloadJson;
 }
 
+function parseHeader (json jwtHeaderJson) (Header) {
+    Header jwtHeader = {};
 
-function processJWTPayload (json jwtPayloadJson) (JWTPayload) {
-    JWTPayload jwtPayload = {};
+    map customClaims = {};
+    foreach k in jwtHeaderJson.getKeys() {
+        string key = <string>k;
+        if (key.equalsIgnoreCase(alg)) {
+            jwtHeader.alg = jwtHeaderJson[key].toString();
+        } else if (key.equalsIgnoreCase(typ)) {
+            jwtHeader.typ = jwtHeaderJson[key].toString();
+        } else if (key.equalsIgnoreCase(cty)) {
+            jwtHeader.cty = jwtHeaderJson[key].toString();
+        } else if (key.equalsIgnoreCase(kid)) {
+            jwtHeader.kid = jwtHeaderJson[key].toString();
+        } else {
+            if (lengthof jwtHeaderJson[key] > 0) {
+                customClaims[key] = convertToStringArray(jwtHeaderJson[key]);
+            } else {
+                customClaims[key] = jwtHeaderJson[key].toString();
+            }
+        }
+    }
+    jwtHeader.customClaims = customClaims;
+    return jwtHeader;
+}
+
+function parsePayload (json jwtPayloadJson) (Payload) {
+    Payload jwtPayload = {};
 
     map customClaims = {};
     foreach k in jwtPayloadJson.getKeys() {
@@ -116,15 +173,15 @@ function processJWTPayload (json jwtPayloadJson) (JWTPayload) {
     }
     jwtPayload.customClaims = customClaims;
     return jwtPayload;
-
 }
 
-function validateJWTToken (string[] encodedJWTComponents, JWTPayload jwtPayload, json jwtHeaderJson) (boolean, error) {
-    if (!validateMandatoryFileds(jwtPayload)) {
+function validateJWT (string[] encodedJWTComponents, Header jwtHeader, Payload jwtPayload)
+(boolean, error) {
+    if (!validateMandatoryFields(jwtPayload)) {
         error err = {msg:"Mandatory fields(Issuer, Subject, Expiration time or Audience) are empty in the given JSON Web Token."};
         return false, err;
     }
-    if (!validateSignature(encodedJWTComponents, jwtHeaderJson)) {
+    if (!validateSignature(encodedJWTComponents, jwtHeader)) {
         error err = {msg:"Invalide signature"};
         return false, err;
     }
@@ -150,24 +207,24 @@ function validateJWTToken (string[] encodedJWTComponents, JWTPayload jwtPayload,
     return true, null;
 }
 
-function validateMandatoryFileds (JWTPayload jwtPayload) (boolean) {
+function validateMandatoryFields (Payload jwtPayload) (boolean) {
     if (jwtPayload.iss == null || jwtPayload.sub == null || jwtPayload.exp == 0 || jwtPayload.aud == null) {
         return false;
     }
     return true;
 }
 
-function validateSignature (string[] encodedJWTComponents, json jwtHeaderJson) (boolean) {
+function validateSignature (string[] encodedJWTComponents, Header jwtHeader) (boolean) {
     string assertion = encodedJWTComponents[0] + "." + encodedJWTComponents[1];
     string signPart = encodedJWTComponents[2];
-    return signature:verify(assertion, signPart, jwtHeaderJson.alg.toString());
+    return signature:verify(assertion, signPart, jwtHeader.alg);
 }
 
-function validateIssuer (JWTPayload jwtPayload) (boolean) {
+function validateIssuer (Payload jwtPayload) (boolean) {
     return jwtPayload.iss.equalsIgnoreCase(getJWTAuthConfiguration(iss));
 }
 
-function validateAudience (JWTPayload jwtPayload) (boolean) {
+function validateAudience (Payload jwtPayload) (boolean) {
     foreach audience in jwtPayload.aud {
         if (audience.equalsIgnoreCase(getJWTAuthConfiguration(aud))) {
             return true;
@@ -176,11 +233,11 @@ function validateAudience (JWTPayload jwtPayload) (boolean) {
     }
 }
 
-function validateExpirationTime (JWTPayload jwtPayload) (boolean) {
+function validateExpirationTime (Payload jwtPayload) (boolean) {
     return jwtPayload.exp > currentTime().time;
 }
 
-function validateNotBeforeTime (JWTPayload jwtPayload) (boolean) {
+function validateNotBeforeTime (Payload jwtPayload) (boolean) {
     return currentTime().time > jwtPayload.nbf;
 }
 
@@ -202,18 +259,18 @@ function urlDecode (string encodedString) (string) {
     return decodedString;
 }
 
-function setSecurityContext (JWTPayload jwtPayload) (SecurityContext) {
+function setSecurityContext (Payload jwtPayload) (SecurityContext) {
     SecurityContext authenticatedUser = {};
     authenticatedUser.userName = jwtPayload.sub;
-    if (jwtPayload.customClaims["scope"] != null) {
-        var scopeString, _ = (string)jwtPayload.customClaims["scope"];
+    if (jwtPayload.customClaims[scope] != null) {
+        var scopeString, _ = (string)jwtPayload.customClaims[scope];
         if (scopeString != null) {
             authenticatedUser.scopes = scopeString.split(" ");
         }
     }
 
-    if (jwtPayload.customClaims["roles"] != null) {
-        var roleList, _ = (string[])jwtPayload.customClaims["roles"];
+    if (jwtPayload.customClaims[roles] != null) {
+        var roleList, _ = (string[])jwtPayload.customClaims[roles];
         if (roleList != null) {
             authenticatedUser.roles = roleList;
         }
