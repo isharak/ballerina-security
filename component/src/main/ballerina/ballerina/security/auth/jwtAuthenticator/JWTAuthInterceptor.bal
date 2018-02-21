@@ -1,6 +1,7 @@
 package ballerina.security.auth.jwtAuthenticator;
 
 import ballerina.net.http;
+import ballerina.log;
 
 @Description {value:"Authentication header name"}
 const string AUTH_HEADER = "Authorization";
@@ -14,25 +15,26 @@ JWTAuthenticator authenticator;
 @Param {value:"req: InRequest object"}
 @Return {value:"boolean: true if authentication is a success, else false"}
 public function handle (http:InRequest req) (boolean) {
-
     if (authenticator == null) {
         authenticator = createAuthenticator();
     }
-    var token, e = extractAuthHeaderValue(req);
+    var token, e = extractJWTToken(req);
+    if (e != null) {
+        log:printError("Error while authentication ", e);
+    }
     return authenticator.authenticate(token);
 }
 
-@Description {value:"Extracts the authentication header value from the request"}
-@Param {value:"req: Inrequest instance"}
-@Return {value:"string: value of the jwt token"}
-@Return {value:"error: any error occurred while extracting the jwt token"}
-public function extractAuthHeaderValue (http:InRequest req) (string, error) {
-
+function extractJWTToken (http:InRequest req) (string, error) {
     string authHeader = req.getHeader(AUTH_HEADER);
     if (authHeader == null || !authHeader.hasPrefix(AUTH_SCHEME)) {
         error err = {msg:"Authentication header not sent with the request"};
         return null, err;
     }
     string[] authHeaderComponents = authHeader.split(" ");
+    if (lengthof authHeaderComponents != 2) {
+        error err = {msg:"Invalid authentication header"};
+        return null, err;
+    }
     return authHeaderComponents[1], null;
 }
