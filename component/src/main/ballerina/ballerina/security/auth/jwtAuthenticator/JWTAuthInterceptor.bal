@@ -20,7 +20,7 @@ public function handle (http:InRequest req) (boolean) {
     }
     var token, e = extractJWTToken(req);
     if (e != null) {
-        log:printError("Error while authentication ", e);
+        log:printErrorCause("Error while authentication ", e);
     }
     return authenticator.authenticate(token);
 }

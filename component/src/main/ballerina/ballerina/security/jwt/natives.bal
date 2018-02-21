@@ -85,16 +85,19 @@ function parseJWT (string[] encodedJWTComponents) (Header, Payload) {
     return jwtHeader, jwtPayload;
 }
 
-function getDecodedJWTComponents (string[] encodedJWTComponents) (json jwtHeaderJson, json jwtPayloadJson) {
+function getDecodedJWTComponents (string[] encodedJWTComponents) (json, json) {
 
     //TODO need to get Base64URL as a native function
     //TODO need to convert header data from UTF-8 to char set which is used in current version
     string jwtHeader = util:base64Decode(urlDecode(encodedJWTComponents[0]));
     string jwtPayload = util:base64Decode(urlDecode(encodedJWTComponents[1]));
 
-    var jwtHeaderJson, _ = <json>jwtHeader;
-    var jwtPayloadJson, _ = <json>jwtPayload;
-    return;
+    // TODO named return didn't work ?
+    json jwtHeaderJson;
+    json jwtPayloadJson;
+    jwtHeaderJson, _ = <json>jwtHeader;
+    jwtPayloadJson, _ = <json>jwtPayload;
+    return jwtHeaderJson, jwtPayloadJson;
 }
 
 function parseHeader (json jwtHeaderJson) (Header) {
