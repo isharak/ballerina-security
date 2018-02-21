@@ -3,41 +3,23 @@ package ballerina.security.auth.jwtAuthenticator;
 import ballerina.security.jwt;
 import ballerina.config;
 import ballerina.caching;
+import ballerina.log;
+
+@Description {value:"Represents a JWT Authenticator"}
+@Field {value:"jwtValidatorConfig: JWTValidatorConfig object"}
+@Field {value:"authCache: Authentication cache object"}
+public struct JWTAuthenticator {
+    jwt:JWTValidatorConfig jwtValidatorConfig;
+    caching:Cache authCache;
+}
 
 const string AUTHENTICATOR_JWT = "authenticator_jwt";
 const string ISSUER = "issuer";
 const string AUDIENCE = "audience";
 const string CERTIFICATE_ALIAS = "certificateAlias";
 const string JWT_AUTH_CACHE = "jwt_auth_cache";
-
-//TODO : use security utils
-@Description {value:"Configuration entry to check if a cache is enabled"}
-const string CACHE_ENABLED = "enabled";
-@Description {value:"Configuration entry for cache expiry time"}
-const string CACHE_EXPIRY_TIME = "expiryTime";
-@Description {value:"Configuration entry for cache capacity"}
-const string CACHE_CAPACITY = "capacity";
-@Description {value:"Configuration entry for eviction factor"}
-const string CACHE_EVICTION_FACTOR = "evictionFactor";
-@Description {value:"Default value for enabling cache"}
-const boolean CACHE_ENABLED_DEFAULT_VALUE = true;
-@Description {value:"Default value for cache expiry in milliseconds"}
-const int CACHE_EXPIRY_DEFAULT_VALUE = 300000;
-@Description {value:"Default value for cache capacity"}
-const int CACHE_CAPACITY_DEFAULT_VALUE = 100;
-@Description {value:"Default value for cache eviction factor"}
-const float CACHE_EVICTION_FACTOR_DEFAULT_VALUE = 0.25;
-
-
-const string scope = "scope";
-const string roles = "roles";
-
-@Description {value:"Represents a JWT Authenticator"}
-@Field {value:"jwtValidatorConfig: JWTValidatorConfig object"}
-public struct JWTAuthenticator {
-    jwt:JWTValidatorConfig jwtValidatorConfig;
-    caching:Cache authCache;
-}
+const string SCOPE = "scope";
+const string ROLES = "roles";
 
 struct SecurityContext {
     string userName;
@@ -51,7 +33,7 @@ struct CachedSecurityContext {
     int expiryTime;
 }
 
-@Description {value:"Creates a JWT Authenticator"}
+@Description {value:"Creates a JWT Authenticator instance"}
 @Return {value:"JWTAuthenticator instance"}
 public function createAuthenticator () (JWTAuthenticator) {
     JWTAuthenticator authenticator = {};
@@ -76,9 +58,6 @@ public function <JWTAuthenticator authenticator> authenticate (string jwtToken) 
         }
     }
 
-    //boolean isValid;
-    //error e;
-    //jwt:Payload payload;
     var isValid, payload, e = jwt:verify(jwtToken, authenticator.jwtValidatorConfig);
 
     if (isValid) {
@@ -88,6 +67,9 @@ public function <JWTAuthenticator authenticator> authenticate (string jwtToken) 
         }
         return true;
     } else {
+        if (e != null) {
+            log:printError("Error while validating JWT token ", e);
+        }
         return false;
     }
 }
@@ -107,9 +89,9 @@ function <JWTAuthenticator authenticator> authenticateFromCache (string jwtToken
     if (cachedSecurityContext != null) {
         isCacheHit = true;
         if (cachedSecurityContext.expiryTime > currentTime().time) {
-            println("Authenticate from cache");
             isAuthenticated = true;
             securityContext = cachedSecurityContext.securityContext;
+            log:printDebug("Authenticate user :" + securityContext.userName + " from cache");
         }
     }
     return;
@@ -121,8 +103,45 @@ function <JWTAuthenticator authenticator> addToAuthenticationCache (string jwtTo
     cachedContext.securityContext = securityContext;
     cachedContext.expiryTime = exp;
     authenticator.authCache.put(jwtToken, cachedContext);
-    println("Add to auth cache");
+    log:printDebug("Add authenticated user :" + securityContext.userName + " to the cache");
 }
+
+function setSecurityContext (jwt:Payload jwtPayload) (SecurityContext) {
+    SecurityContext securityContext = {};
+    securityContext.userName = jwtPayload.sub;
+    if (jwtPayload.customClaims[scope] != null) {
+        var scopeString, _ = (string)jwtPayload.customClaims[SCOPE];
+        if (scopeString != null) {
+            securityContext.scopes = scopeString.split(" ");
+        }
+    }
+    if (jwtPayload.customClaims[roles] != null) {
+        var roleList, _ = (string[])jwtPayload.customClaims[ROLES];
+        if (roleList != null) {
+            securityContext.roles = roleList;
+        }
+    }
+    return securityContext;
+}
+
+
+//TODO : use security utils
+@Description {value:"Configuration entry to check if a cache is enabled"}
+const string CACHE_ENABLED = "enabled";
+@Description {value:"Configuration entry for cache expiry time"}
+const string CACHE_EXPIRY_TIME = "expiryTime";
+@Description {value:"Configuration entry for cache capacity"}
+const string CACHE_CAPACITY = "capacity";
+@Description {value:"Configuration entry for eviction factor"}
+const string CACHE_EVICTION_FACTOR = "evictionFactor";
+@Description {value:"Default value for enabling cache"}
+const boolean CACHE_ENABLED_DEFAULT_VALUE = true;
+@Description {value:"Default value for cache expiry in milliseconds"}
+const int CACHE_EXPIRY_DEFAULT_VALUE = 300000;
+@Description {value:"Default value for cache capacity"}
+const int CACHE_CAPACITY_DEFAULT_VALUE = 100;
+@Description {value:"Default value for cache eviction factor"}
+const float CACHE_EVICTION_FACTOR_DEFAULT_VALUE = 0.25;
 
 //TODO : Use security utils for this
 function isCacheEnabled (string cacheName) (boolean) {
@@ -192,22 +211,4 @@ function getCacheConfigurations (string cacheName) (int, int, float) {
     }
 
     return intExpiryTime, intCapacity, floatEvictionFactor;
-}
-
-function setSecurityContext (jwt:Payload jwtPayload) (SecurityContext) {
-    SecurityContext authenticatedUser = {};
-    authenticatedUser.userName = jwtPayload.sub;
-    if (jwtPayload.customClaims[scope] != null) {
-        var scopeString, _ = (string)jwtPayload.customClaims[scope];
-        if (scopeString != null) {
-            authenticatedUser.scopes = scopeString.split(" ");
-        }
-    }
-    if (jwtPayload.customClaims[roles] != null) {
-        var roleList, _ = (string[])jwtPayload.customClaims[roles];
-        if (roleList != null) {
-            authenticatedUser.roles = roleList;
-        }
-    }
-    return authenticatedUser;
 }
