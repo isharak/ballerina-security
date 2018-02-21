@@ -2,24 +2,33 @@ package ballerina.security.jwt;
 
 import ballerina.util;
 import ballerina.security.signature;
+import ballerina.log;
 
 //JOSH header parameters
-const string alg = "alg";
-const string typ = "typ";
-const string cty = "cty";
-const string kid = "kid";
-
+const string ALG = "alg";
+const string TYP = "typ";
+const string CTY = "cty";
+const string KID = "kid";
 
 //Payload parameters
-const string iss = "iss";
-const string sub = "sub";
-const string aud = "aud";
-const string jti = "jti";
-const string exp = "exp";
-const string nbf = "nbf";
-const string iat = "iat";
+const string ISS = "iss";
+const string SUB = "sub";
+const string AUD = "aud";
+const string JTI = "jti";
+const string EXP = "exp";
+const string NBF = "nbf";
+const string IAT = "iat";
 
+@Description {value:"Represents a JWT header"}
+public struct Header {
+    string alg;
+    string typ;
+    string cty;
+    string kid;
+    map customClaims;
+}
 
+@Description {value:"Represents a JWT payload"}
 public struct Payload {
     string iss;
     string sub;
@@ -31,64 +40,61 @@ public struct Payload {
     map customClaims;
 }
 
-struct Header {
-    string alg;
-    string typ;
-    string cty;
-    string kid;
-    map customClaims;
-}
-
+@Description {value:"Represents JWT validator configurations"}
 public struct JWTValidatorConfig {
     string issuer;
     string audience;
     string certificateAlias;
 }
 
+@Description {value:"Verify validity of JWT token"}
+@Param {value:"jwtToken: InRequest object"}
+@Param {value:"config: InRequest object"}
+@Return {value:"boolean: If JWT token is valied true , else false"}
+@Return {value:"Payload: If JWT token is valied return the JWT payload"}
+@Return {value:"error: If token validation fails "}
 public function verify (string jwtToken, JWTValidatorConfig config) (boolean, Payload, error) {
 
-    string[] encodedJWTComponents = getJWTComponents(jwtToken);
+    var encodedJWTComponents, e = getJWTComponents(jwtToken);
+    if (e == null) {
+        var header, payload = parseJWT(encodedJWTComponents);
+        var isValid, err = validateJWT(encodedJWTComponents, header, payload, config);
 
-    Payload payload = {};
-    Header header = {};
-    header, payload = parseJWT(encodedJWTComponents);
-
-    boolean isValid;
-    error e;
-    isValid, e = validateJWT(encodedJWTComponents, header, payload, config);
-    if (isValid) {
-        return true, payload, null;
+        if (isValid) {
+            return true, payload, null;
+        }
+        return false, null, err;
     }
     return false, null, e;
 }
 
-function getJWTComponents (string jwtToken) (string[]) {
+function getJWTComponents (string jwtToken) (string[], error) {
     string[] jwtComponents = jwtToken.split("\\.");
-    return jwtComponents;
-
+    if (lengthof jwtComponents != 3) {
+        log:printDebug("Invalid JWT token :" + jwtToken);
+        error err = {msg:"Invalid JWT token"};
+        return null, err;
+    }
+    return jwtComponents, null;
 }
 
 function parseJWT (string[] encodedJWTComponents) (Header, Payload) {
     var headerJson, payloadJson = getDecodedJWTComponents(encodedJWTComponents);
     Header jwtHeader = parseHeader(headerJson);
     Payload jwtPayload = parsePayload(payloadJson);
-
     return jwtHeader, jwtPayload;
 }
 
-function getDecodedJWTComponents (string[] encodedJWTComponents) (json, json) {
+function getDecodedJWTComponents (string[] encodedJWTComponents) (json jwtHeaderJson, json jwtPayloadJson) {
 
-    //TODO need to do the decoding parts of header and body (Base64URL decode is not yet implemented)
-    //TODO then need to convert header data from UTF-8 to char set which is used in current version
+    //TODO need to get Base64URL as a native function
+    //TODO need to convert header data from UTF-8 to char set which is used in current version
     string jwtHeader = util:base64Decode(urlDecode(encodedJWTComponents[0]));
     string jwtPayload = util:base64Decode(urlDecode(encodedJWTComponents[1]));
-    json jwtHeaderJson;
-    json jwtPayloadJson;
 
-    jwtHeaderJson, _ = <json>jwtHeader;
-    jwtPayloadJson, _ = <json>jwtPayload;
-
-    return jwtHeaderJson, jwtPayloadJson;
+    var jwtHeaderJson, _ = <json>jwtHeader;
+    var jwtPayloadJson, _ = <json>jwtPayload;
+    return;
 }
 
 function parseHeader (json jwtHeaderJson) (Header) {
@@ -97,13 +103,13 @@ function parseHeader (json jwtHeaderJson) (Header) {
     map customClaims = {};
     foreach k in jwtHeaderJson.getKeys() {
         string key = <string>k;
-        if (key.equalsIgnoreCase(alg)) {
+        if (key.equalsIgnoreCase(ALG)) {
             jwtHeader.alg = jwtHeaderJson[key].toString();
-        } else if (key.equalsIgnoreCase(typ)) {
+        } else if (key.equalsIgnoreCase(TYP)) {
             jwtHeader.typ = jwtHeaderJson[key].toString();
-        } else if (key.equalsIgnoreCase(cty)) {
+        } else if (key.equalsIgnoreCase(CTY)) {
             jwtHeader.cty = jwtHeaderJson[key].toString();
-        } else if (key.equalsIgnoreCase(kid)) {
+        } else if (key.equalsIgnoreCase(KID)) {
             jwtHeader.kid = jwtHeaderJson[key].toString();
         } else {
             if (lengthof jwtHeaderJson[key] > 0) {
@@ -123,24 +129,23 @@ function parsePayload (json jwtPayloadJson) (Payload) {
     map customClaims = {};
     foreach k in jwtPayloadJson.getKeys() {
         string key = <string>k;
-        //println(typeof jwtPayloadJson[key] );
-        if (key.equalsIgnoreCase(iss)) {
+        if (key.equalsIgnoreCase(ISS)) {
             jwtPayload.iss = jwtPayloadJson[key].toString();
-        } else if (key.equalsIgnoreCase(sub)) {
+        } else if (key.equalsIgnoreCase(SUB)) {
             jwtPayload.sub = jwtPayloadJson[key].toString();
-        } else if (key.equalsIgnoreCase(aud)) {
+        } else if (key.equalsIgnoreCase(AUD)) {
             jwtPayload.aud = convertToStringArray(jwtPayloadJson[key]);
-        } else if (key.equalsIgnoreCase(jti)) {
+        } else if (key.equalsIgnoreCase(JTI)) {
             jwtPayload.jti = jwtPayloadJson[key].toString();
-        } else if (key.equalsIgnoreCase(exp)) {
+        } else if (key.equalsIgnoreCase(EXP)) {
             var value = jwtPayloadJson[key].toString();
             var intVal, _ = <int>value;
             jwtPayload.exp = intVal;
-        } else if (key.equalsIgnoreCase(nbf)) {
+        } else if (key.equalsIgnoreCase(NBF)) {
             var value = jwtPayloadJson[key].toString();
             var intVal, _ = <int>value;
             jwtPayload.nbf = intVal;
-        } else if (key.equalsIgnoreCase(iat)) {
+        } else if (key.equalsIgnoreCase(IAT)) {
             var value = jwtPayloadJson[key].toString();
             var intVal, _ = <int>value;
             jwtPayload.iat = intVal;
@@ -164,7 +169,7 @@ function validateJWT (string[] encodedJWTComponents, Header jwtHeader, Payload j
         return false, err;
     }
     if (!validateSignature(encodedJWTComponents, jwtHeader, config)) {
-        error err = {msg:"Invalide signature"};
+        error err = {msg:"Invalid signature"};
         return false, err;
     }
     if (!validateIssuer(jwtPayload, config)) {
@@ -172,8 +177,8 @@ function validateJWT (string[] encodedJWTComponents, Header jwtHeader, Payload j
         return false, err;
     }
     if (!validateAudience(jwtPayload, config)) {
-        //TODO need to set expected audience or available anudience list
-        error err = {msg:"Invalide audience"};
+        //TODO need to set expected audience or available audience list
+        error err = {msg:"Invalid audience"};
         return false, err;
     }
     if (!validateExpirationTime(jwtPayload)) {
@@ -185,7 +190,6 @@ function validateJWT (string[] encodedJWTComponents, Header jwtHeader, Payload j
         return false, err;
     }
     //TODO : Need to validate jwt id (jti) and custom claims.
-
     return true, null;
 }
 
@@ -223,25 +227,11 @@ function validateNotBeforeTime (Payload jwtPayload) (boolean) {
     return currentTime().time > jwtPayload.nbf;
 }
 
-function getJWTAuthConfiguration (string key) (string) {
-    //TODO validate the input and return relevant parameter
-    if (key.equalsIgnoreCase("iss")) {
-        return "wso2";
-
-    } else if (key.equalsIgnoreCase("aud")) {
-        return "Ballerina";
-    }
-    return key;
-}
-
-
 function urlDecode (string encodedString) (string) {
     string decodedString = encodedString.replaceAll("-", "+");
     decodedString = decodedString.replaceAll("_", "/");
     return decodedString;
 }
-
-
 
 function convertToStringArray (json jsonData) (string[]) {
     string[] outData = [];
