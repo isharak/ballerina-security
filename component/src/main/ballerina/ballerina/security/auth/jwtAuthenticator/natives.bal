@@ -68,7 +68,7 @@ public function <JWTAuthenticator authenticator> authenticate (string jwtToken) 
         return true;
     } else {
         if (e != null) {
-            log:printError("Error while validating JWT token ", e);
+            log:printErrorCause("Error while validating JWT token ", e);
         }
         return false;
     }
@@ -109,13 +109,13 @@ function <JWTAuthenticator authenticator> addToAuthenticationCache (string jwtTo
 function setSecurityContext (jwt:Payload jwtPayload) (SecurityContext) {
     SecurityContext securityContext = {};
     securityContext.userName = jwtPayload.sub;
-    if (jwtPayload.customClaims[scope] != null) {
+    if (jwtPayload.customClaims[SCOPE] != null) {
         var scopeString, _ = (string)jwtPayload.customClaims[SCOPE];
         if (scopeString != null) {
             securityContext.scopes = scopeString.split(" ");
         }
     }
-    if (jwtPayload.customClaims[roles] != null) {
+    if (jwtPayload.customClaims[ROLES] != null) {
         var roleList, _ = (string[])jwtPayload.customClaims[ROLES];
         if (roleList != null) {
             securityContext.roles = roleList;
