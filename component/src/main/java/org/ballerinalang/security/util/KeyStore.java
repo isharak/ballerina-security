@@ -25,6 +25,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.security.KeyStore.PasswordProtection;
+import java.security.KeyStore.PrivateKeyEntry;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
@@ -72,7 +74,8 @@ public class KeyStore {
     public PrivateKey getPrivateKey(String alias, char[] keyPassword) throws KeyStoreException {
 
         try {
-            return (PrivateKey) keyStore.getEntry(alias, new java.security.KeyStore.PasswordProtection(keyPassword));
+            PrivateKeyEntry pkEntry = (PrivateKeyEntry) keyStore.getEntry(alias, new PasswordProtection(keyPassword));
+            return pkEntry.getPrivateKey();
         } catch (Exception e) {
             throw new KeyStoreException("Failed to load private key: " + alias, e);
         }
@@ -117,7 +120,7 @@ public class KeyStore {
 
         ConfigRegistry configRegistry = ConfigRegistry.getInstance();
         char[] keyStorePassword = configRegistry.getInstanceConfigValue(KEYSTORE_CONFIG, DEFAULT_KEY_PASSWORD)
-                                 .toCharArray();
+                .toCharArray();
         String keyAlias = configRegistry.getInstanceConfigValue(KEYSTORE_CONFIG, DEFAULT_KEY_ALIAS);
         return getPrivateKey(keyAlias, keyStorePassword);
     }

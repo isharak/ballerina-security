@@ -58,7 +58,7 @@ public class Sign extends AbstractNativeFunction {
         String signature;
 
         try {
-            JWSSigner signer = new RSASigner((PrivateKey) KeyStore.getKeyStore().getDefaultPublicKey());
+            JWSSigner signer = new RSASigner((PrivateKey) KeyStore.getKeyStore().getDefaultPrivateKey());
             signature = signer.sign(data, algorithm);
 
         } catch (Exception e) {
