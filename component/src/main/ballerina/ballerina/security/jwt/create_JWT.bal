@@ -12,9 +12,7 @@ public function createJWT (Header header, Payload payload, JWTIssuerConfig confi
     string jwtHeader = createHeader(header);
     string jwtPayload = createPayload(payload);
     string jwtAssertion = jwtHeader + "." + jwtPayload;
-    //return jwtAssertion, null;
     string signature = signature:sign(jwtAssertion, header.alg, config.certificateAlias);
-    //
     return jwtAssertion + "." + signature, null;
 
 }
@@ -32,6 +30,7 @@ function createPayload (Payload payload) (string) {
     payloadJson[SUB] = payload.sub;
     payloadJson[ISS] = payload.iss;
     payloadJson[EXP] = payload.exp;
+    payloadJson[IAT] = payload.iat;
     payloadJson[AUD] = convertStringArrayToJson(payload.aud);
     payloadJson = addMapToJson(payloadJson, payload.customClaims);
     return urlEncode(util:base64Encode(payloadJson.toString()));

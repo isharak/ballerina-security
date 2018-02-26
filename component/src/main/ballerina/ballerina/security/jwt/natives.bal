@@ -218,8 +218,8 @@ function validateAudience (Payload jwtPayload, JWTValidatorConfig config) (boole
         if (audience.equalsIgnoreCase(config.audience)) {
             return true;
         }
-        return false;
     }
+    return false;
 }
 
 function validateExpirationTime (Payload jwtPayload) (boolean) {

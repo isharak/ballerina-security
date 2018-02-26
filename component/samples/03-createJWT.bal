@@ -18,4 +18,5 @@ public function main (string[] args) {
     var jwt,_ =jwt:createJWT(header, payload, config);
 
     println(jwt);
+
 }
