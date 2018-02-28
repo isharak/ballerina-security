@@ -29,23 +29,21 @@ public class RSASSAProvider {
      * Gets the matching Java Cryptography Architecture (JCA) algorithm
      * name for the specified RSA-based JSON Web Algorithm (JWA).
      *
-     * @param alg The JSON Web Algorithm (JWA). Must be supported and not
-     *            {@code null}.
+     * @param algorithm The JSON Web Algorithm (JWA). Must be supported and not
+     *                  {@code null}.
      * @return The matching JCA algorithm name.
      * @throws JWSException If the algorithm is not supported.
      */
-    protected static String getJCAAlgorithmName(final String alg)
+    protected static String getJCAAlgorithmName(final String algorithm)
             throws JWSException {
-
-        if (alg.equals(JWSAlgorithm.RS256)) {
+        if (JWSAlgorithm.RS256.equals(algorithm)) {
             return "SHA256withRSA";
-        } else if (alg.equals(JWSAlgorithm.RS384)) {
+        } else if (JWSAlgorithm.RS384.equals(algorithm)) {
             return "SHA384withRSA";
-        } else if (alg.equals(JWSAlgorithm.RS512)) {
+        } else if (JWSAlgorithm.RS512.equals(algorithm)) {
             return "SHA512withRSA";
         } else {
-            throw new JWSException("Unsupported JWS algorithm" + alg);
+            throw new JWSException("Unsupported JWS algorithm" + algorithm);
         }
     }
-
 }

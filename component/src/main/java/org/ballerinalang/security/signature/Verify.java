@@ -52,7 +52,6 @@ public class Verify extends AbstractNativeFunction {
 
     @Override
     public BValue[] execute(Context context) {
-
         String data = getStringArgument(context, 0);
         String signature = getStringArgument(context, 1);
         String algorithm = getStringArgument(context, 2);

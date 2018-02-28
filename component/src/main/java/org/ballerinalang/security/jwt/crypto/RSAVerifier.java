@@ -36,22 +36,19 @@ public class RSAVerifier implements JWSVerifier {
     private final RSAPublicKey publicKey;
 
     public RSAVerifier(final RSAPublicKey publicKey) {
-
         this.publicKey = publicKey;
-
     }
 
     @Override
-    public boolean verify(String signingInput, String signature, String algorithm) throws JWSException {
-
+    public boolean verify(String data, String signature, String algorithm) throws JWSException {
         final Signature signatureVerifier;
-        byte[] data = signingInput.getBytes();
+        byte[] dataInBytes = data.getBytes();
         byte[] signatureData = Base64.getUrlDecoder().decode(signature.getBytes());
         String alg = RSASSAProvider.getJCAAlgorithmName(algorithm);
         try {
             signatureVerifier = Signature.getInstance(alg);
             signatureVerifier.initVerify(publicKey);
-            signatureVerifier.update(data);
+            signatureVerifier.update(dataInBytes);
 
             return signatureVerifier.verify(signatureData);
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {

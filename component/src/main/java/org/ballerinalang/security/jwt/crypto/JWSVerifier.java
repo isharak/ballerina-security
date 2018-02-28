@@ -28,17 +28,17 @@ public interface JWSVerifier {
     /**
      * Verifies the signature of the JWS object.
      *
-     * @param signingInput This input should contain the header and body part of the JWT.
-     *                     BASE64URL(UTF8(JOSE header)) || '.' || BASE64URL(JWS payload)
-     * @param signature    Signature part of the JWT.
-     * @param algorithm    JWS algorithm used to secure the JWS.
-     *                     This is the 'alg' header parameter.
+     * @param data      This input should contain the header and body part of the JWT.
+     *                  BASE64URL(UTF8(JOSE header)) || '.' || BASE64URL(JWS payload)
+     * @param signature Signature part of the JWT.
+     * @param algorithm JWS algorithm used to secure the JWS.
+     *                  This is the 'alg' header parameter.
      * @return {@code true} if the signature was successfully verified,
      * {@code false} if the signature is invalid or if a critical
      * @throws JWSException If the JWS algorithm is not supported, or if
      *                      signature verification failed for some other
      *                      internal reason.
      */
-    boolean verify(final String signingInput, final String signature, final String algorithm)
+    boolean verify(final String data, final String signature, final String algorithm)
             throws JWSException;
 }

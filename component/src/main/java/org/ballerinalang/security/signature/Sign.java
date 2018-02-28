@@ -51,10 +51,8 @@ public class Sign extends AbstractNativeFunction {
 
     @Override
     public BValue[] execute(Context context) {
-
         String data = getStringArgument(context, 0);
         String algorithm = getStringArgument(context, 1);
-
         String signature;
 
         try {

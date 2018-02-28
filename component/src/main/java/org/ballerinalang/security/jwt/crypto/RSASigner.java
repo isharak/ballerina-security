@@ -26,7 +26,7 @@ import java.security.SignatureException;
 import java.util.Base64;
 
 /**
- *@since 0.96.0
+ * @since 0.96.0
  */
 public class RSASigner implements JWSSigner {
 
@@ -42,23 +42,20 @@ public class RSASigner implements JWSSigner {
      *                   Must not be {@code null}.
      */
     public RSASigner(final PrivateKey privateKey) {
-
         if (!"RSA".equalsIgnoreCase(privateKey.getAlgorithm())) {
             throw new IllegalArgumentException("The private key algorithm must be RSA");
         }
-
         this.privateKey = privateKey;
     }
 
     @Override
-    public String sign(String signingInput, String algorithm) throws JWSException {
-
+    public String sign(String data, String algorithm) throws JWSException {
         byte[] signatureBytes;
         final Signature signature;
         try {
             signature = Signature.getInstance(RSASSAProvider.getJCAAlgorithmName(algorithm));
             signature.initSign(privateKey);
-            signature.update(signingInput.getBytes());
+            signature.update(data.getBytes());
             signatureBytes = signature.sign();
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
             throw new JWSException(e.getMessage(), e);
